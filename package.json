@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node ./index.js"
   },
   "repository": {
     "type": "git",
@@ -15,5 +15,9 @@
   "bugs": {
     "url": "https://github.com/ivliag/victims/issues"
   },
-  "homepage": "https://github.com/ivliag/victims#readme"
+  "homepage": "https://github.com/ivliag/victims#readme",
+  "dependencies": {
+    "node-geocoder": "^3.23.0",
+    "xlsx": "^0.14.3"
+  }
 }
