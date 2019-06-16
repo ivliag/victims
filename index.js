@@ -1,7 +1,10 @@
 const XLSX = require('xlsx');
 const fs = require('fs');
 const nodeGeocoder = require('node-geocoder');
-const REDUCE_BY = 1000;
+const express = require('express');
+
+const REDUCE_BY = 10000;
+const PORT = 8080;
 
 function prepareRegion(region) {
     if (/горьковская/ig.test(region)) {
@@ -36,13 +39,14 @@ function prepareDistrict(district) {
     const json = XLSX.utils.sheet_to_json(workSheet, {raw: true});
     const reducedJson = json.filter((_, index ) => index % REDUCE_BY === 0);
 
-    console.log('-------- ALL DATA LENGTH ----------');
+    console.log('=> ALL DATA LENGTH');
     console.log(json.length);
-    console.log('-------- REDUCED DATA LENGTH ----------');
+    console.log('=> REDUCED DATA LENGTH');
     console.log(reducedJson.length);
-    console.log('-------- STARTING GEOCODING ----------\n');
+    console.log('=> STARTING GEOCODING\n');
 
     const output = [];
+    const coordinates = [];
 
     try {
         for (let index in reducedJson) {
@@ -69,7 +73,9 @@ function prepareDistrict(district) {
                     address,
                     preparedAddress,
                     ...r
-                })
+                });
+
+                coordinates.push([r.latitude, r.longitude]);
             });
 
             console.log(`Geocoding ${personId} ${address}...`);
@@ -79,7 +85,7 @@ function prepareDistrict(district) {
     }
 
 
-    console.log('-------- WRITING FILES... ----------');
+    console.log('=> WRITING FILES');
 
     const outputWs = XLSX.utils.json_to_sheet(output);
     const outputWb = XLSX.utils.book_new();
@@ -87,6 +93,15 @@ function prepareDistrict(district) {
 
     const outputsLength = fs.readdirSync('./result').filter((fileName) => /^output/.test(fileName)).length;
     XLSX.writeFile(outputWb, `./result/output-${outputsLength + 1}.xlsx`);
+    fs.writeFileSync('./result/data.js', `let data = ${JSON.stringify(coordinates)};`);
+    console.log('=> 🙌 FILES READY');
+    console.log('=> STARTING HEATMAP SERVER');
 
-    console.log('-------- 🎉 DONE 🎉 ----------');
+    const server = express();
+    server.use(express.static(__dirname));
+    server.listen(PORT, () => {
+        console.log('=> 🙌 SERVER STARTED');
+        console.log(`Go to http://localhost:${PORT}/heatmap.html`);
+        console.log(`Press Ctrl + c to stop server`);
+    });
 })();

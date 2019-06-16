@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/ivliag/victims#readme",
   "dependencies": {
+    "express": "^4.17.1",
     "node-geocoder": "^3.23.0",
     "xlsx": "^0.14.3"
   }
