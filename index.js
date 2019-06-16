@@ -3,8 +3,9 @@ const fs = require('fs');
 const nodeGeocoder = require('node-geocoder');
 const express = require('express');
 
-const REDUCE_BY = 10000;
+const REDUCE_BY = 100;
 const PORT = 8080;
+const REDUCE_BY = 100;
 
 function prepareRegion(region) {
     if (/горьковская/ig.test(region)) {

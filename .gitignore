@@ -61,3 +61,5 @@ typings/
 .next
 
 result/*output*
+
+.DS_Store
