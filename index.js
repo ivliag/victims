@@ -2,9 +2,17 @@ const XLSX = require('xlsx');
 const fs = require('fs');
 const nodeGeocoder = require('node-geocoder');
 const express = require('express');
+const argv = require('yargs').argv
+const path = require('path');
 
-const PORT = 8080;
-const REDUCE_BY = 100;
+const INPUT_DATA = argv.data || path.join('.', 'data', fs.readdirSync('./data')[0]);
+const PORT = argv.port || 8080;
+const REDUCE_BY = argv.reduce || 50;
+const HEAT_MAP = Boolean(argv.hm);
+
+/**
+ * Горьковская область => Нижегородская область
+ */
 
 function prepareRegion(region) {
     if (/горьковская/ig.test(region)) {
@@ -14,20 +22,20 @@ function prepareRegion(region) {
     return region;
 }
 
-function prepareDistrict(district) {
-    if (/горький/ig.test(district)) {
+function prepareResidence(residence) {
+    if (/горький/ig.test(residence)) {
         return 'Нижний новгород'
     }
 
-    if (/горького/ig.test(district)) {
+    if (/горького/ig.test(residence)) {
         return 'Нижний новгород'
     }
 
-    return district;
+    return residence;
 }
 
 (async () => {
-    const workBook = XLSX.readFile('./data/gorky-oblast.xlsx');
+    const workBook = XLSX.readFile(INPUT_DATA);
     geocoder = nodeGeocoder({
         apiKey: '13932715-051b-41fb-a1e2-e18d40c4ca96',
         provider: 'yandex'
@@ -53,7 +61,7 @@ function prepareDistrict(district) {
             const person = reducedJson[index];
             const personId = person['ID Memorial DB'];
             const address = `${person.Region} ${person.residence}`;
-            const preparedAddress = `${prepareRegion(person.Region)} ${prepareDistrict(person.residence)}`;
+            const preparedAddress = `${prepareRegion(person.Region)} ${prepareResidence(person.residence)}`;
 
             const result = await geocoder.geocode(preparedAddress);
 
@@ -93,15 +101,19 @@ function prepareDistrict(district) {
 
     const outputsLength = fs.readdirSync('./result').filter((fileName) => /^output/.test(fileName)).length;
     XLSX.writeFile(outputWb, `./result/output-${outputsLength + 1}.xlsx`);
-    fs.writeFileSync('./result/data.js', `let data = ${JSON.stringify(coordinates)};`);
-    console.log('=> 🙌 FILES READY');
-    console.log('=> STARTING HEATMAP SERVER');
+    
+    console.log('=> 🙌 XLSX FILES READY');
 
-    const server = express();
-    server.use(express.static(__dirname));
-    server.listen(PORT, () => {
-        console.log('=> 🙌 SERVER STARTED');
-        console.log(`Go to http://localhost:${PORT}/heatmap.html`);
-        console.log(`Press Ctrl + c to stop server`);
-    });
+    if (HEAT_MAP) {
+        console.log('=> PREPEARING HEATMAP...');
+        fs.writeFileSync('./result/data.js', `let data = ${JSON.stringify(coordinates)};`);
+        console.log('=> STARTING HEATMAP SERVER');
+        const server = express();
+        server.use(express.static(__dirname));
+        server.listen(PORT, () => {
+            console.log('=> 🙌 SERVER STARTED');
+            console.log(`Go to http://localhost:${PORT}/heatmap.html`);
+            console.log(`Press Ctrl + C to stop server`);
+        });
+    }
 })();
