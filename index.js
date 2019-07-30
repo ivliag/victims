@@ -8,6 +8,7 @@ const _get = require('lodash.get');
 const renames = require('./renames');
 
 // consts
+const API_KEYS = ['13932715-051b-41fb-a1e2-e18d40c4ca96', 'dd3d890a-1093-430b-a7b2-9d77264c8222'];
 const PERSON_ID_FIELD = 'ID Memorial DB';
 const Mode = {
     STDOUT: 'stdout',
@@ -20,6 +21,7 @@ const PORT = argv.port || 8080;
 const REDUCE_BY = isNaN(Number(argv.reduce)) ? 50 : Number(argv.reduce);
 const HEAT_MAP = Boolean(argv.hm);
 const IDS = Boolean(argv.ids) && String(argv.ids).split(',').map(Number);
+const FROM_ID = argv['from-id'];
 const MODE = argv.mode === Mode.STDOUT ? Mode.STDOUT : Mode.XLSX;
 
 function getArea(rawResult, index) {
@@ -32,6 +34,10 @@ function prepareRegion(region) {
     }
     
     return region;
+}
+
+function getEdgeIds(output) {
+    return `${output[0].id}-${output[output.length - 1].id}`;
 }
 
 function prepareResidence(residence) {
@@ -51,8 +57,9 @@ function prepareResidence(residence) {
 
 (async () => {
     const workBook = XLSX.readFile(INPUT_DATA);
-    geocoder = nodeGeocoder({
-        apiKey: '13932715-051b-41fb-a1e2-e18d40c4ca96',
+    let currentKey = 0;
+    let geocoder = nodeGeocoder({
+        apikey: API_KEYS[currentKey],
         provider: 'yandex'
     });
 
@@ -64,6 +71,15 @@ function prepareResidence(residence) {
     
     if (IDS) {
         reducedJson = json.filter((person) => IDS.includes(person[PERSON_ID_FIELD]))
+    } else if (FROM_ID) {
+        let fromIndex = 0;
+        for (let i = 0; i < json.length; i++) {
+            if (json[i][PERSON_ID_FIELD] === FROM_ID) {
+                fromIndex = 0;
+            }
+        }
+
+        reducedJson = json.slice(fromIndex);
     } else if (REDUCE_BY > 0) {
         reducedJson = json.filter((_, index) => index % REDUCE_BY === 0);
     }
@@ -84,7 +100,26 @@ function prepareResidence(residence) {
             const address = `${person.Region} ${person.residence}`;
             const preparedAddress = `${prepareRegion(person.Region)} ${prepareResidence(person.residence)}`;
 
-            let result = await geocoder.geocode(preparedAddress);
+            let result = [];
+
+            try {
+                result = await geocoder.geocode(preparedAddress);
+            } catch (e) {
+                if (/429/.test(e.message)) {
+                    console.log('Getting 429, change key, retry...')
+                    currentKey = currentKey === 0 ? 1 : 0;
+                    
+                    geocoder = nodeGeocoder({
+                        apikey: API_KEYS[currentKey],
+                        provider: 'yandex'
+                    });
+                    
+                    index = index - 1;
+                    continue;
+                }
+
+                throw e;
+            }
 
             if (result.length === 0) {
                 output.push({
@@ -129,10 +164,16 @@ function prepareResidence(residence) {
         saveResults();
     } catch (e) {
         console.log(e);
+        saveResults();
     }
 
 
     function saveResults() {
+        if (output.length === 0) {
+            console.log('=> NO GEOCODE DATA');
+            return;
+        }
+
         if (MODE === Mode.XLSX) {
             console.log('=> WRITING FILES');
     
@@ -141,7 +182,7 @@ function prepareResidence(residence) {
             XLSX.utils.book_append_sheet(outputWb, outputWs, 'Sheet 1');
     
             const outputsLength = fs.readdirSync('./result').filter((fileName) => /^output/.test(fileName)).length;
-            XLSX.writeFile(outputWb, `./result/output-${outputsLength + 1}.xlsx`);
+            XLSX.writeFile(outputWb, `./result/output-${outputsLength + 1}-${getEdgeIds(output)}.xlsx`);
     
             console.log('=> 🙌 XLSX FILES READY');
         }
