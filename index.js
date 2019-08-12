@@ -1,6 +1,6 @@
 const XLSX = require('xlsx');
 const fs = require('fs');
-const nodeGeocoder = require('node-geocoder');
+const NodeGeocoder = require('node-geocoder');
 const express = require('express');
 const argv = require('yargs').argv
 const path = require('path');
@@ -8,7 +8,12 @@ const _get = require('lodash.get');
 const renames = require('./renames');
 
 // consts
-const API_KEYS = ['13932715-051b-41fb-a1e2-e18d40c4ca96', 'dd3d890a-1093-430b-a7b2-9d77264c8222'];
+const API_KEYS = [
+    '13932715-051b-41fb-a1e2-e18d40c4ca96',
+    'dd3d890a-1093-430b-a7b2-9d77264c8222',
+    'a8eae0a1-44d2-47b6-839e-9f445a0ca5ab'
+];
+
 const PERSON_ID_FIELD = 'ID Memorial DB';
 const Mode = {
     STDOUT: 'stdout',
@@ -21,7 +26,7 @@ const PORT = argv.port || 8080;
 const REDUCE_BY = isNaN(Number(argv.reduce)) ? 50 : Number(argv.reduce);
 const HEAT_MAP = Boolean(argv.hm);
 const IDS = Boolean(argv.ids) && String(argv.ids).split(',').map(Number);
-const FROM_ID = argv['from-id'];
+const FROM_ID = Number(argv['from-id']);
 const MODE = argv.mode === Mode.STDOUT ? Mode.STDOUT : Mode.XLSX;
 
 function getArea(rawResult, index) {
@@ -32,7 +37,7 @@ function prepareRegion(region) {
     if (/горьковская/ig.test(region)) {
         return 'Нижегородская область'
     }
-    
+
     return region;
 }
 
@@ -57,9 +62,8 @@ function prepareResidence(residence) {
 
 (async () => {
     const workBook = XLSX.readFile(INPUT_DATA);
-    let currentKey = 0;
-    let geocoder = nodeGeocoder({
-        apikey: API_KEYS[currentKey],
+    let geocoder = NodeGeocoder({
+        apiKey: 'a8eae0a1-44d2-47b6-839e-9f445a0ca5ab',
         provider: 'yandex'
     });
 
@@ -68,14 +72,15 @@ function prepareResidence(residence) {
 
     const json = XLSX.utils.sheet_to_json(workSheet, {raw: true});
     let reducedJson = json;
-    
+
     if (IDS) {
         reducedJson = json.filter((person) => IDS.includes(person[PERSON_ID_FIELD]))
     } else if (FROM_ID) {
         let fromIndex = 0;
         for (let i = 0; i < json.length; i++) {
             if (json[i][PERSON_ID_FIELD] === FROM_ID) {
-                fromIndex = 0;
+                fromIndex = i;
+                break;
             }
         }
 
@@ -102,24 +107,7 @@ function prepareResidence(residence) {
 
             let result = [];
 
-            try {
-                result = await geocoder.geocode(preparedAddress);
-            } catch (e) {
-                if (/429/.test(e.message)) {
-                    console.log('Getting 429, change key, retry...')
-                    currentKey = currentKey === 0 ? 1 : 0;
-                    
-                    geocoder = nodeGeocoder({
-                        apikey: API_KEYS[currentKey],
-                        provider: 'yandex'
-                    });
-                    
-                    index = index - 1;
-                    continue;
-                }
-
-                throw e;
-            }
+            result = await geocoder.geocode(preparedAddress);
 
             if (result.length === 0) {
                 output.push({
@@ -135,7 +123,7 @@ function prepareResidence(residence) {
 
             if (result.length > 1 && result.find((r) => !r.city)) {
                 result = result.filter((r) => r.city);
-            } 
+            }
 
             result.forEach((r, index) => {
                 output.push({
@@ -160,7 +148,7 @@ function prepareResidence(residence) {
             console.log(`Geocoding ${personId} ${address}...`);
 
         }
-        
+
         saveResults();
     } catch (e) {
         console.log(e);
@@ -176,22 +164,22 @@ function prepareResidence(residence) {
 
         if (MODE === Mode.XLSX) {
             console.log('=> WRITING FILES');
-    
+
             const outputWs = XLSX.utils.json_to_sheet(output);
             const outputWb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(outputWb, outputWs, 'Sheet 1');
-    
+
             const outputsLength = fs.readdirSync('./result').filter((fileName) => /^output/.test(fileName)).length;
             XLSX.writeFile(outputWb, `./result/output-${outputsLength + 1}-${getEdgeIds(output)}.xlsx`);
-    
+
             console.log('=> 🙌 XLSX FILES READY');
         }
-    
+
         if (MODE === Mode.STDOUT) {
             console.log('=> 🙌 OUTPUT READY');
             console.log(output);
         }
-    
+
         if (HEAT_MAP) {
             console.log('=> PREPEARING HEATMAP...');
             fs.writeFileSync('./result/data.js', `let data = ${JSON.stringify(coordinates)};`);
