@@ -1,11 +1,16 @@
 const XLSX = require('xlsx');
 const fs = require('fs');
-const NodeGeocoder = require('node-geocoder');
+const NodeGeocoder = require('./geocoder');
 const express = require('express');
 const argv = require('yargs').argv
 const path = require('path');
 const _get = require('lodash.get');
 const renames = require('./renames');
+const nodeCleanup = require('node-cleanup');
+
+const inPolygon = require('./utils/in-polygon');
+const GORKY_OBLAST_REGIONS = require('./regions/gorky-oblast-regions.json');
+const POLYGONS = require('./regions/polygons');
 
 // consts
 const API_KEYS = [
@@ -21,37 +26,32 @@ const Mode = {
 };
 
 // settings
-const INPUT_DATA = argv.data || path.join('.', 'data', fs.readdirSync('./data')[0]);
+const INPUT_DATA = argv.data || path.join('.', 'data', fs.readdirSync('./data').find((f) => !['.DS_Store'].includes(f)));
 const PORT = argv.port || 8080;
 const REDUCE_BY = isNaN(Number(argv.reduce)) ? 50 : Number(argv.reduce);
 const HEAT_MAP = Boolean(argv.hm);
 const IDS = Boolean(argv.ids) && String(argv.ids).split(',').map(Number);
+const IDS_SOURCE = Boolean(argv['ids-src']) && require(argv['ids-src']);
 const FROM_ID = Number(argv['from-id']);
+
 const MODE = argv.mode === Mode.STDOUT ? Mode.STDOUT : Mode.XLSX;
 
 function getArea(rawResult, index) {
     return _get(rawResult, `response.GeoObjectCollection.featureMember[${index}].GeoObject.metaDataProperty.GeocoderMetaData.AddressDetails.Country.AdministrativeArea.SubAdministrativeArea.SubAdministrativeAreaName`)
 }
 
-function prepareRegion(region) {
-    if (/горьковская/ig.test(region)) {
-        return 'Нижегородская область'
-    }
-
-    return region;
-}
-
 function getEdgeIds(output) {
     return `${output[0].id}-${output[output.length - 1].id}`;
 }
 
-function prepareResidence(residence) {
-    let result = residence;
+function prepareAddress(address) {
+    let result = address;
 
     renames.forEach((rename) => {
         rename.from.forEach((ruleFrom) => {
             const reg = new RegExp(ruleFrom, 'ig');
-            if (reg.test(residence)) {
+
+            if (reg.test(address)) {
                 result = result.replace(reg, rename.to);
             }
         });
@@ -60,11 +60,34 @@ function prepareResidence(residence) {
     return result;
 }
 
+function extractRegionId(address) {
+    for (let regionId in GORKY_OBLAST_REGIONS) {
+        let isMatched = GORKY_OBLAST_REGIONS[regionId]
+            .matches
+            .find((m) => new RegExp(m, 'ig').test(address));
+
+        if (isMatched) {
+            return regionId;
+        }
+    }
+}
+
 (async () => {
+    nodeCleanup((exitCode, signal) => {
+        if (signal) {
+            saveResults();
+            process.kill(process.pid, signal);
+            nodeCleanup.uninstall();
+            process.exit(exitCode);
+            return false;
+        }
+    });
+
+    console.log(`reading ${INPUT_DATA}`)
     const workBook = XLSX.readFile(INPUT_DATA);
+
     let geocoder = NodeGeocoder({
-        apiKey: 'a8eae0a1-44d2-47b6-839e-9f445a0ca5ab',
-        provider: 'yandex'
+        apikey: API_KEYS[2]
     });
 
     const targetSheetName = (workBook.SheetNames || [''])[0];
@@ -73,8 +96,8 @@ function prepareResidence(residence) {
     const json = XLSX.utils.sheet_to_json(workSheet, {raw: true});
     let reducedJson = json;
 
-    if (IDS) {
-        reducedJson = json.filter((person) => IDS.includes(person[PERSON_ID_FIELD]))
+    if (IDS || IDS_SOURCE) {
+        reducedJson = json.filter((person) => (IDS || IDS_SOURCE).includes(person[PERSON_ID_FIELD]))
     } else if (FROM_ID) {
         let fromIndex = 0;
         for (let i = 0; i < json.length; i++) {
@@ -102,11 +125,12 @@ function prepareResidence(residence) {
         for (let index in reducedJson) {
             const person = reducedJson[index];
             const personId = person[PERSON_ID_FIELD];
-            const address = `${person.Region} ${person.residence}`;
-            const preparedAddress = `${prepareRegion(person.Region)} ${prepareResidence(person.residence)}`;
+            const originalAddress = `${person.Region} ${person.residence}`;
+            const preparedAddress = `${prepareAddress(person.Region)} ${prepareAddress(person.residence)}`;
+
+            console.log(`Geocoding ${personId} ${originalAddress}...`);
 
             let result = [];
-
             result = await geocoder.geocode(preparedAddress);
 
             if (result.length === 0) {
@@ -114,15 +138,38 @@ function prepareResidence(residence) {
                     id: personId,
                     success: false,
                     multipleResults: false,
-                    address,
-                    preparedAddress,
+                    originalAddress,
+                    preparedAddress
                 });
 
                 continue;
             }
 
+            // Если больше 1 результата и есть результат с городом - берём его
             if (result.length > 1 && result.find((r) => !r.city)) {
                 result = result.filter((r) => r.city);
+            }
+
+            // Если получается определить регион - ищем в полигоне
+            if (result.length > 1 && extractRegionId(originalAddress)) {
+                const regionId = extractRegionId(originalAddress);
+
+                if (regionId !== undefined) {
+                    const resultInPolygon = result.find((r) => inPolygon({
+                        polygon: POLYGONS[regionId],
+                        lat: r.latitude,
+                        lon: r.longitude
+                    }))
+
+                    if (resultInPolygon) {
+                        result = [{
+                            ...resultInPolygon,
+                            regionId
+                        }]
+
+                        console.log(`🎉 Address "${originalAddress}" found in polygon for "${GORKY_OBLAST_REGIONS[regionId].regionName}"`);
+                    }
+                }
             }
 
             result.forEach((r, index) => {
@@ -130,7 +177,7 @@ function prepareResidence(residence) {
                     id: personId,
                     success: !!r.city,
                     multipleResults: result.length > 1,
-                    address,
+                    originalAddress,
                     preparedAddress,
                     latitude: r.latitude,
                     longitude: r.longitude,
@@ -140,13 +187,11 @@ function prepareResidence(residence) {
                     streetName: r.streetName,
                     streetNumber: r.streetNumber,
                     formattedAddress: r.formattedAddress,
+                    polygonRegionId: r.regionId
                 });
 
                 coordinates.push([r.latitude, r.longitude]);
             });
-
-            console.log(`Geocoding ${personId} ${address}...`);
-
         }
 
         saveResults();
@@ -154,7 +199,6 @@ function prepareResidence(residence) {
         console.log(e);
         saveResults();
     }
-
 
     function saveResults() {
         if (output.length === 0) {
