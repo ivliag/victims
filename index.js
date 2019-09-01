@@ -133,35 +133,31 @@ function extractRegionId(address) {
             console.log(`${Number(index) + 1}/${reducedJson.length}: Geocoding ${personId} ${originalAddress}...`);
 
             let result = [];
+            let resolution = '';
+            let success = false;
+            let multipleResults = false;
+
             result = await geocoder.geocode(preparedAddress);
 
             // Если геокодер не дал результатов - пишем пустой результат с регионом из адреса
             if (result.length === 0) {
-                output.push({
-                    id: personId,
-                    success: false,
-                    multipleResults: false,
-                    originalAddress,
-                    preparedAddress,
-                    regionMatchedByAddress
-                });
+                success = false;
+                multipleResults = false;
 
                 if (regionMatchedByAddress) {
-                    console.log(`⭕ Мatched only by adress string in region "${regionName}"\n`);
+                    resolution = `⭕ Мatched only by adress string in region "${regionName}"`
                 } else {
-                    console.log(`❌ Not found at all"\n`);
+                    resolution = `❌ Not found at all`;
                 }
 
-                continue;
+                result = [{}];
             }
 
             // Если геокодер дал один результат - записываем его
             if (result.length === 1) {
-                result = [{
-                    ...result,
-                    regionMatchedByAddress
-                }];
-                console.log(`😎 Found one result\n`);
+                success = true;
+                multipleResults = false;
+                resolution = `😎 Found one result`;
             }
 
             // Если результатов много и получается определить регион - ищем в полигоне
@@ -173,37 +169,35 @@ function extractRegionId(address) {
                 }))
 
                 if (resultInPolygon) {
+                    success = true;
+                    multipleResults = false;
+                    resolution = `🎉 Found in polygon for "${regionName}"`;
+
                     result = [{
                         ...resultInPolygon,
-                        regionMatchedByAddress,
                         regionMatchedByPolygon: regionMatchedByAddress
                     }]
-
-                    console.log(`🎉 Found in polygon for "${regionName}"\n`);
                 } else {
-                    result = [{
-                        id: personId,
-                        success: false,
-                        multipleResults: true,
-                        originalAddress,
-                        preparedAddress,
-                        regionMatchedByAddress
-                    }];
+                    success = false;
+                    multipleResults = true;
+                    resolution = `😿 Not found in polygon for "${regionName}"`;
 
-                    console.log(`😿 Not found in polygon for "${regionName}"\n`);
+                    result = [{}];
                 }
             }
 
             // Если результатов много и не получается определить регион - записываем дубли
             if (result.length > 1 && !regionMatchedByAddress) {
-                console.log(`👥 Found multiple results but region didn't matched"\n`);
+                success = false;
+                multipleResults = true;
+                resolution = `👥 Found multiple results but region didn't matched`;
             }
 
             result.forEach((r, index) => {
                 output.push({
                     id: personId,
-                    success: !!r.city,
-                    multipleResults: result.length > 1,
+                    success,
+                    multipleResults,
                     originalAddress,
                     preparedAddress,
                     latitude: r.latitude,
@@ -214,12 +208,15 @@ function extractRegionId(address) {
                     streetName: r.streetName,
                     streetNumber: r.streetNumber,
                     formattedAddress: r.formattedAddress,
-                    regionMatchedByAddress: r.regionMatchedByAddress,
-                    regionMatchedByPolygon: r.regionMatchedByPolygon
+                    regionMatchedByAddress,
+                    regionMatchedByPolygon: r.regionMatchedByPolygon,
+                    resolution
                 });
 
                 coordinates.push([r.latitude, r.longitude]);
             });
+
+            console.log(resolution + '\n');
         }
 
         saveResults();
