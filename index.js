@@ -145,30 +145,36 @@ function extractRegionId(address) {
                 continue;
             }
 
-            // Если больше 1 результата и есть результат с городом - берём его
-            if (result.length > 1 && result.find((r) => !r.city)) {
-                result = result.filter((r) => r.city);
-            }
-
             // Если получается определить регион - ищем в полигоне
             if (result.length > 1 && extractRegionId(originalAddress)) {
                 const regionId = extractRegionId(originalAddress);
+                const regionMatchedByAddress = regionId;
 
-                if (regionId !== undefined) {
-                    const resultInPolygon = result.find((r) => inPolygon({
-                        polygon: POLYGONS[regionId],
-                        lat: r.latitude,
-                        lon: r.longitude
-                    }))
+                const resultInPolygon = result.find((r) => inPolygon({
+                    polygon: POLYGONS[regionId],
+                    lat: r.latitude,
+                    lon: r.longitude
+                }))
 
-                    if (resultInPolygon) {
-                        result = [{
-                            ...resultInPolygon,
-                            regionId
-                        }]
+                if (resultInPolygon) {
+                    result = [{
+                        ...resultInPolygon,
+                        regionMatchedByAddress,
+                        regionMatchedByPolygon: regionId
+                    }]
 
-                        console.log(`🎉 Address "${originalAddress}" found in polygon for "${GORKY_OBLAST_REGIONS[regionId].regionName}"`);
-                    }
+                    console.log(`🎉 Address "${originalAddress}" found in polygon for "${GORKY_OBLAST_REGIONS[regionId].regionName}"`);
+                } else {
+                    result = [{
+                        id: personId,
+                        success: false,
+                        multipleResults: true,
+                        originalAddress,
+                        preparedAddress,
+                        regionMatchedByAddress
+                    }];
+
+                    console.log(`😿 Address "${originalAddress}" not found in polygon for "${GORKY_OBLAST_REGIONS[regionId].regionName}"`);
                 }
             }
 
@@ -187,7 +193,7 @@ function extractRegionId(address) {
                     streetName: r.streetName,
                     streetNumber: r.streetNumber,
                     formattedAddress: r.formattedAddress,
-                    polygonRegionId: r.regionId
+                    matchedRegionName: r.matchedRegionName
                 });
 
                 coordinates.push([r.latitude, r.longitude]);
