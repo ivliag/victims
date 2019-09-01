@@ -127,31 +127,47 @@ function extractRegionId(address) {
             const personId = person[PERSON_ID_FIELD];
             const originalAddress = `${person.Region} ${person.residence}`;
             const preparedAddress = `${prepareAddress(person.Region)} ${prepareAddress(person.residence)}`;
+            const regionMatchedByAddress = extractRegionId(originalAddress);
+            const regionName = regionMatchedByAddress && GORKY_OBLAST_REGIONS[regionMatchedByAddress].regionName;
 
             console.log(`Geocoding ${personId} ${originalAddress}...`);
 
             let result = [];
             result = await geocoder.geocode(preparedAddress);
 
+            // Если геокодер не дал результатов - пишем пустой результат с регионом из адреса
             if (result.length === 0) {
                 output.push({
                     id: personId,
                     success: false,
                     multipleResults: false,
                     originalAddress,
-                    preparedAddress
+                    preparedAddress,
+                    regionMatchedByAddress
                 });
+
+                if (regionMatchedByAddress) {
+                    console.log(`⭕ Мatched only by adress string in region "${regionName}"\n`);
+                } else {
+                    console.log(`❌ Not found at all"\n`);
+                }
 
                 continue;
             }
 
-            // Если получается определить регион - ищем в полигоне
-            if (result.length > 1 && extractRegionId(originalAddress)) {
-                const regionId = extractRegionId(originalAddress);
-                const regionMatchedByAddress = regionId;
+            // Если геокодер дал один результат - записываем его
+            if (result.length === 1) {
+                result = [{
+                    ...result,
+                    regionMatchedByAddress
+                }];
+                console.log(`😎 Found one result"\n`);
+            }
 
+            // Если результатов много и получается определить регион - ищем в полигоне
+            if (result.length > 1 && regionMatchedByAddress) {
                 const resultInPolygon = result.find((r) => inPolygon({
-                    polygon: POLYGONS[regionId],
+                    polygon: POLYGONS[regionMatchedByAddress],
                     lat: r.latitude,
                     lon: r.longitude
                 }))
@@ -160,10 +176,10 @@ function extractRegionId(address) {
                     result = [{
                         ...resultInPolygon,
                         regionMatchedByAddress,
-                        regionMatchedByPolygon: regionId
+                        regionMatchedByPolygon: regionMatchedByAddress
                     }]
 
-                    console.log(`🎉 Address "${originalAddress}" found in polygon for "${GORKY_OBLAST_REGIONS[regionId].regionName}"`);
+                    console.log(`🎉 Found in polygon for "${regionName}"\n`);
                 } else {
                     result = [{
                         id: personId,
@@ -174,8 +190,13 @@ function extractRegionId(address) {
                         regionMatchedByAddress
                     }];
 
-                    console.log(`😿 Address "${originalAddress}" not found in polygon for "${GORKY_OBLAST_REGIONS[regionId].regionName}"`);
+                    console.log(`😿 Not found in polygon for "${regionName}"\n`);
                 }
+            }
+
+            // Если результатов много и не получается определить регион - записываем дубли
+            if (result.length > 1 && !regionMatchedByAddress) {
+                console.log(`👥 Found multiple results but region didn't matched"\n`);
             }
 
             result.forEach((r, index) => {
@@ -193,7 +214,8 @@ function extractRegionId(address) {
                     streetName: r.streetName,
                     streetNumber: r.streetNumber,
                     formattedAddress: r.formattedAddress,
-                    matchedRegionName: r.matchedRegionName
+                    regionMatchedByAddress: r.regionMatchedByAddress,
+                    regionMatchedByPolygon: r.regionMatchedByPolygon
                 });
 
                 coordinates.push([r.latitude, r.longitude]);
