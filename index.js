@@ -130,7 +130,7 @@ function extractRegionId(address) {
             const regionMatchedByAddress = extractRegionId(originalAddress);
             const regionName = regionMatchedByAddress && GORKY_OBLAST_REGIONS[regionMatchedByAddress].regionName;
 
-            console.log(`Geocoding ${personId} ${originalAddress}...`);
+            console.log(`${Number(index) + 1} of ${reducedJson.length}: Geocoding ${personId} ${originalAddress}...`);
 
             let result = [];
             result = await geocoder.geocode(preparedAddress);
@@ -161,7 +161,7 @@ function extractRegionId(address) {
                     ...result,
                     regionMatchedByAddress
                 }];
-                console.log(`😎 Found one result"\n`);
+                console.log(`😎 Found one result\n`);
             }
 
             // Если результатов много и получается определить регион - ищем в полигоне
