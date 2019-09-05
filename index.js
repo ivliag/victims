@@ -154,11 +154,37 @@ function extractRegionId(address) {
             }
 
             // Если геокодер дал один результат - записываем его
-            if (result.length === 1) {
+            if (result.length === 1 && !regionMatchedByAddress) {
                 success = true;
                 multipleResults = false;
                 resolution = `😎 Found one result`;
             }
+
+            // Если геокодер дал один результат и мэтчится полигон - ищем в полигоне
+            if (result.length === 1 && regionMatchedByAddress) {
+                const resultInPolygon = result.find((r) => inPolygon({
+                    polygon: POLYGONS[regionMatchedByAddress],
+                    lat: r.latitude,
+                    lon: r.longitude
+                }))
+                if (resultInPolygon) {
+                    success = true;
+                    multipleResults = false;
+                    resolution = `👍 Found 1 result in polygon for "${regionName}"`;
+
+                    result = [{
+                        ...resultInPolygon,
+                        regionMatchedByPolygon: regionMatchedByAddress
+                    }]
+                } else {
+                    success = false;
+                    multipleResults = false;
+                    resolution = `😵 Not found 1 result in polygon for "${regionName}"`;
+
+                    result = [{}];
+                }
+            }
+
 
             // Если результатов много и получается определить регион - ищем в полигоне
             if (result.length > 1 && regionMatchedByAddress) {
