@@ -12,11 +12,18 @@ const { argv } = require('yargs');
 const path = require('path');
 const get = require('lodash.get');
 const NodeGeocoder = require('./geocoder');
-const renames = require('./renames');
 
 const inPolygon = require('./utils/in-polygon');
-const GORKY_OBLAST_REGIONS = require('./regions/gorky-oblast-regions.json');
-const GORKY_OBLAST_POLYGONS = require('./regions/gorky-oblast-polygons');
+
+// GORKY
+// const REGIONS = require('./regions/gorky-oblast-regions.json');
+// const POLYGONS = require('./regions/gorky-oblast-polygons');
+// const RENAMES = require('./regions/gorky-oblast-renames');
+
+// KARELIA
+const REGIONS = require('./regions/karelian-assr-regions.json');
+const POLYGONS = require('./regions/karelian-assr-polygons');
+const RENAMES = require('./regions/karelian-assr-renames');
 
 // consts
 const API_KEYS = [
@@ -34,7 +41,7 @@ const Mode = {
 // settings
 const INPUT_DATA = argv.data || path.join('.', 'data', fs.readdirSync('./data').find((f) => !['.DS_Store'].includes(f)));
 const PORT = argv.port || 8080;
-const REDUCE_BY = Number(argv.reduce) ? 50 : Number(argv.reduce);
+const REDUCE_BY = Number(argv.reduce) ? Number(argv.reduce) : 50;
 const HEAT_MAP = Boolean(argv.hm);
 const IDS = Boolean(argv.ids) && String(argv.ids).split(',').map(Number);
 const IDS_SOURCE = Boolean(argv['ids-src']) && require(argv['ids-src']); // eslint-disable-line import/no-dynamic-require, global-require
@@ -53,7 +60,7 @@ function getEdgeIds(output) {
 function prepareAddress(address) {
     let result = address;
 
-    renames.forEach((rename) => {
+    RENAMES.forEach((rename) => {
         rename.from.forEach((ruleFrom) => {
             const reg = new RegExp(ruleFrom, 'ig');
 
@@ -67,8 +74,8 @@ function prepareAddress(address) {
 }
 
 function extractRegionId(address) {
-    return Object.keys(GORKY_OBLAST_REGIONS).find((regionId) => (
-        GORKY_OBLAST_REGIONS[regionId]
+    return Object.keys(REGIONS).find((regionId) => (
+        REGIONS[regionId]
             .matches
             .find((m) => new RegExp(m, 'ig').test(address))
     ));
@@ -206,7 +213,7 @@ function extractRegionId(address) {
 
             const regionIdExtractedFromAddress = extractRegionId(originalAddress);
             const regionName = regionIdExtractedFromAddress
-                && GORKY_OBLAST_REGIONS[regionIdExtractedFromAddress].regionName;
+                && REGIONS[regionIdExtractedFromAddress].regionName;
 
             const geocoderResult = await geocoder.geocode(preparedAddress);
 
@@ -258,13 +265,13 @@ function extractRegionId(address) {
             // Геокодер дал один результат и удалось получить регион из адреса
             if (regionIdExtractedFromAddress && geocoderResult.length === 1) {
                 const resultInRegionPolygon = geocoderResult.filter((r) => inPolygon({
-                    polygon: GORKY_OBLAST_POLYGONS[regionIdExtractedFromAddress],
+                    polygon: POLYGONS[regionIdExtractedFromAddress],
                     lat: r.latitude,
                     lon: r.longitude
                 }));
 
                 const resultInAreaPolygon = geocoderResult.filter(
-                    (r) => Object.values(GORKY_OBLAST_POLYGONS)
+                    (r) => Object.values(POLYGONS)
                         .find((polygon) => inPolygon({
                             polygon,
                             lat: r.latitude,
@@ -321,13 +328,13 @@ function extractRegionId(address) {
             // Геокодер дал множество результатов и удалось получить регион из адреса
             if (regionIdExtractedFromAddress && geocoderResult.length > 1) {
                 const resultInRegionPolygon = geocoderResult.filter((r) => inPolygon({
-                    polygon: GORKY_OBLAST_POLYGONS[regionIdExtractedFromAddress],
+                    polygon: POLYGONS[regionIdExtractedFromAddress],
                     lat: r.latitude,
                     lon: r.longitude
                 }));
 
                 const resultInAreaPolygon = geocoderResult.filter(
-                    (r) => Object.values(GORKY_OBLAST_POLYGONS)
+                    (r) => Object.values(POLYGONS)
                         .find((polygon) => inPolygon({
                             polygon,
                             lat: r.latitude,
@@ -385,7 +392,7 @@ function extractRegionId(address) {
             // Геокодер дал множество результатов и не удалось получить регион из адреса
             if (!regionIdExtractedFromAddress && geocoderResult.length > 0) {
                 const resultInAreaPolygon = geocoderResult.filter(
-                    (r) => Object.values(GORKY_OBLAST_POLYGONS)
+                    (r) => Object.values(POLYGONS)
                         .find((polygon) => inPolygon({
                             polygon,
                             lat: r.latitude,
