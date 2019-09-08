@@ -210,8 +210,6 @@ function extractRegionId(address) {
 
             const geocoderResult = await geocoder.geocode(preparedAddress);
 
-            console.log(regionIdExtractedFromAddress, geocoderResult);
-
             const calculatedResult = {
                 personId,
                 originalAddress,
