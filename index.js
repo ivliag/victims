@@ -216,7 +216,7 @@ function extractRegionId(address) {
             if (result.length > 1 && !regionMatchedByAddress) {
                 success = false;
                 multipleResults = true;
-                resolution = `👥 Found multiple results but region didn't matched`;
+                resolution = `👥 Found multiple results but region didn't match`;
             }
 
             result.forEach((r, index) => {
