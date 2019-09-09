@@ -16,14 +16,14 @@ const NodeGeocoder = require('./geocoder');
 const inPolygon = require('./utils/in-polygon');
 
 // GORKY
-// const REGIONS = require('./regions/gorky-oblast-regions.json');
-// const POLYGONS = require('./regions/gorky-oblast-polygons');
-// const RENAMES = require('./regions/gorky-oblast-renames');
+const REGIONS = require('./regions/gorky-oblast-regions.json');
+const POLYGONS = require('./regions/gorky-oblast-polygons');
+const RENAMES = require('./regions/gorky-oblast-renames');
 
 // KARELIA
-const REGIONS = require('./regions/karelian-assr-regions.json');
-const POLYGONS = require('./regions/karelian-assr-polygons');
-const RENAMES = require('./regions/karelian-assr-renames');
+// const REGIONS = require('./regions/karelian-assr-regions.json');
+// const POLYGONS = require('./regions/karelian-assr-polygons');
+// const RENAMES = require('./regions/karelian-assr-renames');
 
 // consts
 const API_KEYS = [
