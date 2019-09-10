@@ -125,7 +125,7 @@ function extractRegionId(address) {
     }
 
     function appendResultToOutput(geocoderResult, calculatedResult, flags) {
-        geocoderResult.forEach((r, i) => {
+        (geocoderResult.length > 0 ? geocoderResult : [{}]).forEach((r, i) => {
             output.push({
                 ...calculatedResult,
 
