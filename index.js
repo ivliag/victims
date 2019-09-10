@@ -15,15 +15,35 @@ const NodeGeocoder = require('./geocoder');
 
 const inPolygon = require('./utils/in-polygon');
 
+// ALTAY KRAY
+// const REGIONS = require('./regions/altay-kray-regions.json');
+// const POLYGONS = require('./regions/altay-kray-polygons');
+// const RENAMES = require('./regions/altay-kray-renames');
+
+// ALTAY REPUBLIC
+// const REGIONS = require('./regions/altay-republic-regions.json');
+// const POLYGONS = require('./regions/altay-republic-polygons');
+// const RENAMES = require('./regions/altay-republic-renames');
+
+// BASHKIRIA
+// const REGIONS = require('./regions/bashkiria-regions.json');
+// const POLYGONS = require('./regions/bashkiria-polygons');
+// const RENAMES = require('./regions/bashkiria-renames');
+
 // GORKY
 // const REGIONS = require('./regions/gorky-oblast-regions.json');
 // const POLYGONS = require('./regions/gorky-oblast-polygons');
 // const RENAMES = require('./regions/gorky-oblast-renames');
 
 // KARELIA
-const REGIONS = require('./regions/karelian-assr-regions.json');
-const POLYGONS = require('./regions/karelian-assr-polygons');
-const RENAMES = require('./regions/karelian-assr-renames');
+// const REGIONS = require('./regions/karelian-assr-regions.json');
+// const POLYGONS = require('./regions/karelian-assr-polygons');
+// const RENAMES = require('./regions/karelian-assr-renames');
+
+// NORTH OSETIA
+const REGIONS = require('./regions/north-osetia-regions.json');
+const POLYGONS = require('./regions/north-osetia-polygons');
+const RENAMES = require('./regions/north-osetia-renames');
 
 // consts
 const API_KEYS = [
