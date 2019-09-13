@@ -104,7 +104,7 @@ function extractRegionId(address) {
 (async () => {
     const output = [];
     const coordinates = [];
-    const geocoder = NodeGeocoder({ apikey: API_KEYS[2] });
+    const geocoder = NodeGeocoder({ apikey: API_KEYS[1] });
 
     function saveResults() {
         if (output.length === 0) {
