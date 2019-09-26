@@ -28844,15 +28844,15 @@ const data = [
 const pc = (c) => typeof c === "number" ? c : Number(c.replace(',', '.'));
 
 // let result = data.reduce((result, it) => {
-//     if (result[it.regionId__1]) {
+//     if (result[it.districtID__1]) {
 //         return result;
 //     }
 
-//     result[it.regionId__1] = {
+//     result[it.districtID__1] = {
 //         areaName: it.areaName,
-//         regionName: it.regionName,
-//         regionId: it.regionId__1,
-//         regionShortId: it.regionId,
+//         districtName: it.districtName,
+//         districtID: it.districtID__1,
+//         regionShortId: it.districtID,
 //     }
 
 //     return result;

@@ -36,14 +36,14 @@ const inPolygon = require('./utils/in-polygon');
 // const RENAMES = require('./regions/gorky-oblast-renames');
 
 // KARELIA
-// const REGIONS = require('./regions/karelian-assr-regions.json');
-// const POLYGONS = require('./regions/karelian-assr-polygons');
-// const RENAMES = require('./regions/karelian-assr-renames');
+const REGIONS = require('./regions/karelian-assr-regions.json');
+const POLYGONS = require('./regions/karelian-assr-polygons');
+const RENAMES = require('./regions/karelian-assr-renames');
 
 // NORTH OSETIA
-const REGIONS = require('./regions/north-osetia-regions.json');
-const POLYGONS = require('./regions/north-osetia-polygons');
-const RENAMES = require('./regions/north-osetia-renames');
+// const REGIONS = require('./regions/north-osetia-regions.json');
+// const POLYGONS = require('./regions/north-osetia-polygons');
+// const RENAMES = require('./regions/north-osetia-renames');
 
 // consts
 const API_KEYS = [
@@ -93,9 +93,9 @@ function prepareAddress(address) {
     return result;
 }
 
-function extractRegionId(address) {
-    return Object.keys(REGIONS).find((regionId) => (
-        REGIONS[regionId]
+function extractdistrictID(address) {
+    return Object.keys(REGIONS).find((districtID) => (
+        REGIONS[districtID]
             .matches
             .find((m) => new RegExp(m, 'ig').test(address))
     ));
@@ -216,10 +216,10 @@ function extractRegionId(address) {
             /**
              * Output flags:
              *
-             * REGION_EXTRACTED - получили регион из строки адреса
+             * DISTRICT_EXTRACTED - получили регион из строки адреса
              * COORDINATES_GAINED - геокодер дал больше одного результата
-             * COORDINATES_IN_REGION - координаты геокодера попали внутрь полигона региона из адреса
-             * COORDINATES_IN_AREA - координаты геокодера попали внутрь полигона все области
+             * COORDINATES_IN_DISTRICT - координаты геокодера попали внутрь полигона региона из адреса
+             * COORDINATES_IN_REGION - координаты геокодера попали внутрь полигона все области
              * MULTIPLE_RESULTS - после всех примененных фильтров осталось > 1 результата
              * RESOLUTION - текстовое описание итога
              */
@@ -231,9 +231,9 @@ function extractRegionId(address) {
 
             console.log(`${Number(index) + 1}/${reducedJson.length}: Geocoding ${personId} ${originalAddress}...`);
 
-            const regionIdExtractedFromAddress = extractRegionId(originalAddress);
-            const regionName = regionIdExtractedFromAddress
-                && REGIONS[regionIdExtractedFromAddress].regionName;
+            const districtIDExtractedFromAddress = extractdistrictID(originalAddress);
+            const districtName = districtIDExtractedFromAddress
+                && REGIONS[districtIDExtractedFromAddress].districtName;
 
             const geocoderResult = await geocoder.geocode(preparedAddress);
 
@@ -241,22 +241,22 @@ function extractRegionId(address) {
                 personId,
                 originalAddress,
                 preparedAddress,
-                regionId: regionIdExtractedFromAddress,
-                regionName,
+                districtID: districtIDExtractedFromAddress,
+                districtName,
                 geocoderRawResultsCount: geocoderResult.length
             };
 
             const flags = {
-                REGION_EXTRACTED: false,
+                DISTRICT_EXTRACTED: false,
                 COORDINATES_GAINED: false,
+                COORDINATES_IN_DISTRICT: false,
                 COORDINATES_IN_REGION: false,
-                COORDINATES_IN_AREA: false,
                 MULTIPLE_RESULTS: false,
                 RESOLUTION: ''
             };
 
-            // Геокодер не дал результатов и не удалось получить регион из адреса
-            if (!regionIdExtractedFromAddress && geocoderResult.length === 0) {
+            // Геокодер не дал результатов и не удалось получить район из адреса
+            if (!districtIDExtractedFromAddress && geocoderResult.length === 0) {
                 const resolution = '❌ Not found at all';
 
                 appendResultToOutput(geocoderResult, calculatedResult, {
@@ -268,13 +268,13 @@ function extractRegionId(address) {
                 continue;
             }
 
-            // Геокодер не дал результатов, но удалось получить регион из адреса
-            if (regionIdExtractedFromAddress && geocoderResult.length === 0) {
-                const resolution = `⭕ Мatched only by adress string in region "${regionName}"`;
+            // Геокодер не дал результатов, но удалось получить район из адреса
+            if (districtIDExtractedFromAddress && geocoderResult.length === 0) {
+                const resolution = `⭕ Мatched only by adress string in district "${districtName}"`;
 
                 appendResultToOutput(geocoderResult, calculatedResult, {
                     ...flags,
-                    REGION_EXTRACTED: true,
+                    DISTRICT_EXTRACTED: true,
                     RESOLUTION: resolution
                 });
 
@@ -282,10 +282,10 @@ function extractRegionId(address) {
                 continue;
             }
 
-            // Геокодер дал один результат и удалось получить регион из адреса
-            if (regionIdExtractedFromAddress && geocoderResult.length === 1) {
+            // Геокодер дал один результат и удалось получить район из адреса
+            if (districtIDExtractedFromAddress && geocoderResult.length === 1) {
                 const resultInRegionPolygon = geocoderResult.filter((r) => inPolygon({
-                    polygon: POLYGONS[regionIdExtractedFromAddress],
+                    polygon: POLYGONS[districtIDExtractedFromAddress],
                     lat: r.latitude,
                     lon: r.longitude
                 }));
@@ -300,14 +300,14 @@ function extractRegionId(address) {
                 );
 
                 if (resultInRegionPolygon.length > 0) {
-                    const resolution = `👍 Found 1 result in polygon for "${regionName}"`;
+                    const resolution = `👍 Found 1 result in polygon for "${districtName}"`;
 
                     appendResultToOutput(geocoderResult, calculatedResult, {
                         ...flags,
-                        REGION_EXTRACTED: true,
+                        DISTRICT_EXTRACTED: true,
                         COORDINATES_GAINED: true,
+                        COORDINATES_IN_DISTRICT: true,
                         COORDINATES_IN_REGION: true,
-                        COORDINATES_IN_AREA: true,
                         MULTIPLE_RESULTS: resultInRegionPolygon.length > 1,
                         RESOLUTION: resolution
                     });
@@ -317,13 +317,13 @@ function extractRegionId(address) {
                 }
 
                 if (resultInAreaPolygon.length > 0) {
-                    const resolution = `👽 Found 1 result in whole Area but not in "${regionName}"`;
+                    const resolution = `👽 Found 1 result in the whole region but not in "${districtName}"`;
 
                     appendResultToOutput(geocoderResult, calculatedResult, {
                         ...flags,
-                        REGION_EXTRACTED: true,
+                        DISTRICT_EXTRACTED: true,
                         COORDINATES_GAINED: true,
-                        COORDINATES_IN_AREA: true,
+                        COORDINATES_IN_REGION: true,
                         MULTIPLE_RESULTS: resultInAreaPolygon.length > 1,
                         RESOLUTION: resolution
                     });
@@ -332,11 +332,11 @@ function extractRegionId(address) {
                     continue;
                 }
 
-                const resolution = `😵 Not found result in polygon for "${regionName}" and whole Area`;
+                const resolution = `😵 Not found any results in polygon for "${districtName}" and whole region`;
 
                 appendResultToOutput([{}], calculatedResult, {
                     ...flags,
-                    REGION_EXTRACTED: true,
+                    DISTRICT_EXTRACTED: true,
                     COORDINATES_GAINED: true,
                     RESOLUTION: resolution
                 });
@@ -346,9 +346,9 @@ function extractRegionId(address) {
             }
 
             // Геокодер дал множество результатов и удалось получить регион из адреса
-            if (regionIdExtractedFromAddress && geocoderResult.length > 1) {
+            if (districtIDExtractedFromAddress && geocoderResult.length > 1) {
                 const resultInRegionPolygon = geocoderResult.filter((r) => inPolygon({
-                    polygon: POLYGONS[regionIdExtractedFromAddress],
+                    polygon: POLYGONS[districtIDExtractedFromAddress],
                     lat: r.latitude,
                     lon: r.longitude
                 }));
@@ -363,14 +363,14 @@ function extractRegionId(address) {
                 );
 
                 if (resultInRegionPolygon.length > 0) {
-                    const resolution = `👍 Found multiple results but specified by polygon for "${regionName}"`;
+                    const resolution = `👍 Found multiple results but specified by polygon for "${districtName}"`;
 
                     appendResultToOutput(resultInRegionPolygon, calculatedResult, {
                         ...flags,
-                        REGION_EXTRACTED: true,
+                        DISTRICT_EXTRACTED: true,
                         COORDINATES_GAINED: true,
+                        COORDINATES_IN_DISTRICT: true,
                         COORDINATES_IN_REGION: true,
-                        COORDINATES_IN_AREA: true,
                         MULTIPLE_RESULTS: resultInRegionPolygon.length > 1,
                         RESOLUTION: resolution
                     });
@@ -380,12 +380,12 @@ function extractRegionId(address) {
                 }
 
                 if (resultInAreaPolygon.length > 0) {
-                    const resolution = `👽 Found multiple results in whole Area but not in "${regionName}"`;
+                    const resolution = `👽 Found multiple results in whole region but not in "${districtName}"`;
 
                     appendResultToOutput(resultInAreaPolygon, calculatedResult, {
                         ...flags,
-                        REGION_EXTRACTED: true,
-                        COORDINATES_IN_AREA: true,
+                        DISTRICT_EXTRACTED: true,
+                        COORDINATES_IN_REGION: true,
                         COORDINATES_GAINED: true,
                         MULTIPLE_RESULTS: resultInAreaPolygon.length > 1,
                         RESOLUTION: resolution
@@ -395,12 +395,12 @@ function extractRegionId(address) {
                     continue;
                 }
 
-                const resolution = `😵 Not found result in polygon for "${regionName}" and whole Area`;
+                const resolution = `😵 Did not find any results in polygon for "${districtName}" and whole region`;
 
                 appendResultToOutput([{}], calculatedResult, {
                     ...flags,
                     MULTIPLE_RESULTS: true,
-                    REGION_EXTRACTED: true,
+                    DISTRICT_EXTRACTED: true,
                     COORDINATES_GAINED: true,
                     RESOLUTION: resolution
                 });
@@ -410,7 +410,7 @@ function extractRegionId(address) {
             }
 
             // Геокодер дал множество результатов и не удалось получить регион из адреса
-            if (!regionIdExtractedFromAddress && geocoderResult.length > 0) {
+            if (!districtIDExtractedFromAddress && geocoderResult.length > 0) {
                 const resultInAreaPolygon = geocoderResult.filter(
                     (r) => Object.values(POLYGONS)
                         .find((polygon) => inPolygon({
@@ -424,15 +424,15 @@ function extractRegionId(address) {
                     let resolution;
 
                     if (geocoderResult.length === 1) {
-                        resolution = '👍 Found one result and it`s inside polygon for whole Area';
+                        resolution = '👍 Found one result and it`s inside polygon for whole region';
                     } else {
-                        resolution = '👍 Found multiple results and specified by polygon for whole Area';
+                        resolution = '👍 Found multiple results and specified by polygon for whole region';
                     }
 
                     appendResultToOutput(resultInAreaPolygon, calculatedResult, {
                         ...flags,
                         COORDINATES_GAINED: true,
-                        COORDINATES_IN_AREA: true,
+                        COORDINATES_IN_REGION: true,
                         RESOLUTION: resolution
                     });
 
@@ -441,12 +441,12 @@ function extractRegionId(address) {
                 }
 
                 if (resultInAreaPolygon.length > 1) {
-                    const resolution = '👽 Found multiple results in whole Area';
+                    const resolution = '👽 Found multiple results in the whole region';
 
                     appendResultToOutput(resultInAreaPolygon, calculatedResult, {
                         ...flags,
                         COORDINATES_GAINED: true,
-                        COORDINATES_IN_AREA: true,
+                        COORDINATES_IN_REGION: true,
                         MULTIPLE_RESULTS: true,
                         RESOLUTION: resolution
                     });
@@ -455,7 +455,7 @@ function extractRegionId(address) {
                     continue;
                 }
 
-                const resolution = '😵 Not found result in polygon for whole Area';
+                const resolution = '😵 Did not found any results in polygon for the whole region';
 
                 appendResultToOutput(geocoderResult, calculatedResult, {
                     ...flags,
