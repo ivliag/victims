@@ -31,14 +31,14 @@ const inPolygon = require('./utils/in-polygon');
 // const RENAMES = require('./regions/bashkiria-renames');
 
 // GORKY
-// const REGIONS = require('./regions/gorky-oblast-regions.json');
-// const POLYGONS = require('./regions/gorky-oblast-polygons');
-// const RENAMES = require('./regions/gorky-oblast-renames');
+const REGIONS = require('./regions/gorky-oblast-regions.json');
+const POLYGONS = require('./regions/gorky-oblast-polygons');
+const RENAMES = require('./regions/gorky-oblast-renames');
 
 // KARELIA
-const REGIONS = require('./regions/karelian-assr-regions.json');
-const POLYGONS = require('./regions/karelian-assr-polygons');
-const RENAMES = require('./regions/karelian-assr-renames');
+// const REGIONS = require('./regions/karelian-assr-regions.json');
+// const POLYGONS = require('./regions/karelian-assr-polygons');
+// const RENAMES = require('./regions/karelian-assr-renames');
 
 // NORTH OSETIA
 // const REGIONS = require('./regions/north-osetia-regions.json');
@@ -104,7 +104,7 @@ function extractdistrictID(address) {
 (async () => {
     const output = [];
     const coordinates = [];
-    const geocoder = NodeGeocoder({ apikey: API_KEYS[1] });
+    const geocoder = NodeGeocoder({ apikey: API_KEYS[2] });
 
     function saveResults() {
         if (output.length === 0) {
@@ -227,7 +227,7 @@ function extractdistrictID(address) {
             const person = reducedJson[index];
             const personId = person[PERSON_ID_FIELD];
             const originalAddress = `${person.Region} ${person.residence}`;
-            const preparedAddress = `${prepareAddress(person.Region)} ${prepareAddress(person.residence)}`;
+            const preparedAddress = `${prepareAddress(person.residence)}`;
 
             console.log(`${Number(index) + 1}/${reducedJson.length}: Geocoding ${personId} ${originalAddress}...`);
 
