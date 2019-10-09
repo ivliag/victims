@@ -113,11 +113,15 @@ function enrichGeocoderResultWithDistrict({ geocoderResult }) {
             }));
 
         if (polygonIdForGeoCoderItem) {
+            const region = REGIONS[polygonIdForGeoCoderItem];
+
+            console.log(region);
+
             return {
                 ...geocoderItem,
                 inPolygon: true,
-                polygonDistrictName: REGIONS[polygonIdForGeoCoderItem].districtName,
-                polygonDistrictId: REGIONS[polygonIdForGeoCoderItem].districtID
+                districtName: region ? region.districtName : polygonIdForGeoCoderItem,
+                districtId: region ? region.districtID : polygonIdForGeoCoderItem
             };
         }
 
@@ -173,7 +177,7 @@ function enrichGeocoderResultWithDistrict({ geocoderResult }) {
 
     function appendResultToOutput(geocoderResult, calculatedResult, flags) {
         const safeResults = geocoderResult.length > 0 ? geocoderResult : [{}];
-        const enrichedResults = enrichGeocoderResultWithDistrict(safeResults);
+        const enrichedResults = enrichGeocoderResultWithDistrict({ geocoderResult: safeResults });
 
         enrichedResults.forEach((r, i) => {
             output.push({
