@@ -53,6 +53,8 @@ const API_KEYS = [
 ];
 
 const PERSON_ID_FIELD = 'ID Memorial DB';
+const DISTRICT_FIELD = 'districtname';
+
 const Mode = {
     STDOUT: 'stdout',
     XLSX: 'xlsx'
@@ -101,6 +103,31 @@ function extractdistrictID(address) {
     ));
 }
 
+function enrichGeocoderResultWithDistrict({ geocoderResult }) {
+    return geocoderResult.map((geocoderItem) => {
+        const polygonIdForGeoCoderItem = Object.keys(POLYGONS)
+            .find((polygonId) => inPolygon({
+                polygon: POLYGONS[polygonId],
+                lat: geocoderItem.latitude,
+                lon: geocoderItem.longitude
+            }));
+
+        if (polygonIdForGeoCoderItem) {
+            return {
+                ...geocoderItem,
+                inPolygon: true,
+                polygonDistrictName: REGIONS[polygonIdForGeoCoderItem].districtName,
+                polygonDistrictId: REGIONS[polygonIdForGeoCoderItem].districtID
+            };
+        }
+
+        return {
+            ...geocoderItem,
+            inPolygon: false
+        };
+    });
+}
+
 (async () => {
     const output = [];
     const coordinates = [];
@@ -145,7 +172,10 @@ function extractdistrictID(address) {
     }
 
     function appendResultToOutput(geocoderResult, calculatedResult, flags) {
-        (geocoderResult.length > 0 ? geocoderResult : [{}]).forEach((r, i) => {
+        const safeResults = geocoderResult.length > 0 ? geocoderResult : [{}];
+        const enrichedResults = enrichGeocoderResultWithDistrict(safeResults);
+
+        enrichedResults.forEach((r, i) => {
             output.push({
                 ...calculatedResult,
 
@@ -157,6 +187,7 @@ function extractdistrictID(address) {
                 streetName: r.streetName,
                 streetNumber: r.streetNumber,
                 formattedAddress: r.formattedAddress,
+                matchedPolygon: r.inPolygon ? r.districtName : undefined,
 
                 ...flags
             });
@@ -218,8 +249,8 @@ function extractdistrictID(address) {
              *
              * DISTRICT_EXTRACTED - получили регион из строки адреса
              * COORDINATES_GAINED - геокодер дал больше одного результата
-             * COORDINATES_IN_DISTRICT - координаты геокодера попали внутрь полигона региона из адреса
-             * COORDINATES_IN_REGION - координаты геокодера попали внутрь полигона все области
+             * COORDINATES_IN_DISTRICT - координаты геокодера попали в полигон района из адреса
+             * COORDINATES_IN_REGION - координаты геокодера попали в полигон всей области
              * MULTIPLE_RESULTS - после всех примененных фильтров осталось > 1 результата
              * RESOLUTION - текстовое описание итога
              */
@@ -228,10 +259,13 @@ function extractdistrictID(address) {
             const personId = person[PERSON_ID_FIELD];
             const originalAddress = `${person.Region} ${person.residence}`;
             const preparedAddress = `${prepareAddress(person.residence)}`;
+            const districtNameFromInputTable = person[DISTRICT_FIELD];
 
             console.log(`${Number(index) + 1}/${reducedJson.length}: Geocoding ${personId} ${originalAddress}...`);
 
-            const districtIDExtractedFromAddress = extractdistrictID(originalAddress);
+            const districtIDExtractedFromAddress = extractdistrictID(
+                districtNameFromInputTable || originalAddress
+            );
             const districtName = districtIDExtractedFromAddress
                 && REGIONS[districtIDExtractedFromAddress].districtName;
 
