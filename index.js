@@ -53,7 +53,7 @@ const API_KEYS = [
 ];
 
 const PERSON_ID_FIELD = 'ID Memorial DB';
-const DISTRICT_FIELD = 'districtname';
+const DISTRICT_FIELD = 'districtName';
 
 const Mode = {
     STDOUT: 'stdout',
@@ -114,8 +114,6 @@ function enrichGeocoderResultWithDistrict({ geocoderResult }) {
 
         if (polygonIdForGeoCoderItem) {
             const region = REGIONS[polygonIdForGeoCoderItem];
-
-            console.log(region);
 
             return {
                 ...geocoderItem,
