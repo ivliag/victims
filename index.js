@@ -260,7 +260,7 @@ function enrichGeocoderResultWithDistrict({ geocoderResult }) {
             const person = reducedJson[index];
             const personId = person[PERSON_ID_FIELD];
             const originalAddress = `${person.Region} ${person.residence}`;
-            const preparedAddress = `${prepareAddress(person.residence)}`;
+            const preparedAddress = `${person.Region} ${prepareAddress(person.residence)}`;
             const districtNameFromInputTable = person[DISTRICT_FIELD];
 
             console.log(`${Number(index) + 1}/${reducedJson.length}: Geocoding ${personId} ${originalAddress}...`);
