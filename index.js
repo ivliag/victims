@@ -15,15 +15,19 @@ const NodeGeocoder = require('./geocoder');
 
 const inPolygon = require('./utils/in-polygon');
 
+
 // ALTAY KRAY
+
 // const REGIONS = require('./regions/altay-kray-regions.json');
+
 // const POLYGONS = require('./regions/altay-kray-polygons');
+
 // const RENAMES = require('./regions/altay-kray-renames');
 
 // ALTAY REPUBLIC
-// const REGIONS = require('./regions/altay-republic-regions.json');
-// const POLYGONS = require('./regions/altay-republic-polygons');
-// const RENAMES = require('./regions/altay-republic-renames');
+const REGIONS = require('./regions/altay-republic-regions.json');
+const POLYGONS = require('./regions/altay-republic-polygons');
+const RENAMES = require('./regions/altay-republic-renames');
 
 // BASHKIRIA
 // const REGIONS = require('./regions/bashkiria-regions.json');
@@ -31,9 +35,9 @@ const inPolygon = require('./utils/in-polygon');
 // const RENAMES = require('./regions/bashkiria-renames');
 
 // GORKY
-const REGIONS = require('./regions/gorky-oblast-regions.json');
-const POLYGONS = require('./regions/gorky-oblast-polygons');
-const RENAMES = require('./regions/gorky-oblast-renames');
+// const REGIONS = require('./regions/gorky-oblast-regions.json');
+// const POLYGONS = require('./regions/gorky-oblast-polygons');
+// const RENAMES = require('./regions/gorky-oblast-renames');
 
 // KARELIA
 // const REGIONS = require('./regions/karelian-assr-regions.json');
@@ -53,7 +57,7 @@ const API_KEYS = [
 ];
 
 const PERSON_ID_FIELD = 'ID Memorial DB';
-const DISTRICT_FIELD = 'districtName';
+const DISTRICT_FIELD = 'DistrictName';
 
 const Mode = {
     STDOUT: 'stdout',
@@ -320,6 +324,8 @@ function enrichGeocoderResultWithDistrict({ geocoderResult }) {
 
             // Геокодер дал один результат и удалось получить район из адреса
             if (districtIDExtractedFromAddress && geocoderResult.length === 1) {
+                console.log(districtIDExtractedFromAddress);
+
                 const resultInRegionPolygon = geocoderResult.filter((r) => inPolygon({
                     polygon: POLYGONS[districtIDExtractedFromAddress],
                     lat: r.latitude,
