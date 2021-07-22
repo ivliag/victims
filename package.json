@@ -24,7 +24,7 @@
     "node-cleanup": "^2.1.2",
     "request": "^2.88.0",
     "request-promise": "^4.2.2",
-    "xlsx": "^0.14.3",
+    "xlsx": "^0.17.0",
     "yargs": "^13.3.0"
   },
   "devDependencies": {
