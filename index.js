@@ -17,17 +17,14 @@ const inPolygon = require('./utils/in-polygon');
 
 
 // ALTAY KRAY
-
 // const REGIONS = require('./regions/altay-kray-regions.json');
-
 // const POLYGONS = require('./regions/altay-kray-polygons');
-
 // const RENAMES = require('./regions/altay-kray-renames');
 
 // ALTAY REPUBLIC
-const REGIONS = require('./regions/altay-republic-regions.json');
-const POLYGONS = require('./regions/altay-republic-polygons');
-const RENAMES = require('./regions/altay-republic-renames');
+// const REGIONS = require('./regions/altay-republic-regions.json');
+// const POLYGONS = require('./regions/altay-republic-polygons');
+// const RENAMES = require('./regions/altay-republic-renames');
 
 // BASHKIRIA
 // const REGIONS = require('./regions/bashkiria-regions.json');
@@ -39,15 +36,15 @@ const RENAMES = require('./regions/altay-republic-renames');
 // const POLYGONS = require('./regions/gorky-oblast-polygons');
 // const RENAMES = require('./regions/gorky-oblast-renames');
 
-// KARELIA
+// // KARELIA
 // const REGIONS = require('./regions/karelian-assr-regions.json');
 // const POLYGONS = require('./regions/karelian-assr-polygons');
 // const RENAMES = require('./regions/karelian-assr-renames');
 
 // NORTH OSETIA
-// const REGIONS = require('./regions/north-osetia-regions.json');
-// const POLYGONS = require('./regions/north-osetia-polygons');
-// const RENAMES = require('./regions/north-osetia-renames');
+const REGIONS = require('./regions/north-osetia-regions.json');
+const POLYGONS = require('./regions/north-osetia-polygons');
+const RENAMES = require('./regions/north-osetia-renames');
 
 // consts
 const API_KEYS = [
@@ -253,12 +250,12 @@ function enrichGeocoderResultWithDistrict({ geocoderResult }) {
             /**
              * Output flags:
              *
-             * DISTRICT_EXTRACTED - получили регион из строки адреса
-             * COORDINATES_GAINED - геокодер дал больше одного результата
-             * COORDINATES_IN_DISTRICT - координаты геокодера попали в полигон района из адреса
-             * COORDINATES_IN_REGION - координаты геокодера попали в полигон всей области
-             * MULTIPLE_RESULTS - после всех примененных фильтров осталось > 1 результата
-             * RESOLUTION - текстовое описание итога
+             * DISTRICT_EXTRACTED - we attributed district name from address name 
+             * COORDINATES_GAINED - Geocoder returned more than one result 
+             * COORDINATES_IN_DISTRICT - Geocoder returned coordinates of a settlement inside polygon of an attributed district
+             * COORDINATES_IN_REGION - Geocoder returned coordinates of a settlement inside polygon of the region 
+             * MULTIPLE_RESULTS - Geocoder returned more than 1 result inside polygons
+             * RESOLUTION - Text description of results
              */
 
             const person = reducedJson[index];
@@ -295,7 +292,8 @@ function enrichGeocoderResultWithDistrict({ geocoderResult }) {
                 RESOLUTION: ''
             };
 
-            // Геокодер не дал результатов и не удалось получить район из адреса
+            // Geocoder did not return any result and failed to attribute district
+
             if (!districtIDExtractedFromAddress && geocoderResult.length === 0) {
                 const resolution = '❌ Not found at all';
 
@@ -308,7 +306,8 @@ function enrichGeocoderResultWithDistrict({ geocoderResult }) {
                 continue;
             }
 
-            // Геокодер не дал результатов, но удалось получить район из адреса
+            // Geocoder did not return any result, but district was attributed
+            
             if (districtIDExtractedFromAddress && geocoderResult.length === 0) {
                 const resolution = `⭕ Мatched only by adress string in district "${districtName}"`;
 
@@ -322,7 +321,8 @@ function enrichGeocoderResultWithDistrict({ geocoderResult }) {
                 continue;
             }
 
-            // Геокодер дал один результат и удалось получить район из адреса
+            // Geocoder returned one result, and it was inside the attributed district
+            
             if (districtIDExtractedFromAddress && geocoderResult.length === 1) {
                 console.log(districtIDExtractedFromAddress);
 
@@ -387,7 +387,8 @@ function enrichGeocoderResultWithDistrict({ geocoderResult }) {
                 continue;
             }
 
-            // Геокодер дал множество результатов и удалось получить регион из адреса
+            // Geocoder returned multiple results, but found one inside the attributed district
+
             if (districtIDExtractedFromAddress && geocoderResult.length > 1) {
                 const resultInRegionPolygon = geocoderResult.filter((r) => inPolygon({
                     polygon: POLYGONS[districtIDExtractedFromAddress],
@@ -451,7 +452,8 @@ function enrichGeocoderResultWithDistrict({ geocoderResult }) {
                 continue;
             }
 
-            // Геокодер дал множество результатов и не удалось получить регион из адреса
+            // Geocoder returned results inside the whole region
+
             if (!districtIDExtractedFromAddress && geocoderResult.length > 0) {
                 const resultInAreaPolygon = geocoderResult.filter(
                     (r) => Object.values(POLYGONS)
@@ -496,7 +498,7 @@ function enrichGeocoderResultWithDistrict({ geocoderResult }) {
                     console.log(`${resolution}\n`);
                     continue;
                 }
-
+                // Geocoder did not return any results inside the whole region
                 const resolution = '😵 Did not found any results in polygon for the whole region';
 
                 appendResultToOutput(geocoderResult, calculatedResult, {
