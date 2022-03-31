@@ -26,16 +26,16 @@ npm start -- --reduce=1000
 ```
 
 ## Arguments
-| Название | Описание                                                      | Значение по-умолчанию                         |
+| Name | Description                                                      | Default value                         |
 |----------|---------------------------------------------------------------|-----------------------------------------------|
-| `--data`     | Путь до файла с данными                                       | Первый по алфавиту файл из папки ```./data``` |
-| `--reduce`   | Коэффицент уменьшения выборки                                 | ```1```                                       |
-| `--ids`      | id из ```ID Memorial DB``` для которых запустить скрипт       |                                               |
-| `--from-id`  | id из ```ID Memorial DB``` с которого начинать геокодирование |                                               |
+| `--data`     | Path to the file                                       | First file in the folder ```./data``` |
+| `--reduce`   | How to reduce sampling                                 | ```1```                                       |
+| `--ids`      | id from ```ID Memorial DB``` for which start the script       |                                               |
+| `--from-id`  | id from ```ID Memorial DB``` from which start geocoding |                                               |
 
 ## Result flags
 ```
-DISTRICT_EXTRACTED - we attributed district name from address name
+DISTRICT_EXTRACTED - District name was attributed from address name
 COORDINATES_GAINED - Geocoder returned more than one result
 COORDINATES_IN_DISTRICT - Geocoder returned coordinates of a settlement inside polygon of an attributed district
 COORDINATES_IN_REGION - Geocoder returned coordinates of a settlement inside polygon of the region
