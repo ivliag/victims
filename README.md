@@ -1,7 +1,9 @@
 
 # Victims
 
-This code allows to geocode addresses of victims of terror in regions of the USSR using modern maps via Yandex.Maps API Geocoder (https://yandex.com/dev/maps/geocoder/). We worked with the following regions: Altai Kray, Bashkirian ASSR, Gorky Oblast, Karelian ASSR and North Ossetian ASSR. The information on victims came from the Victims of political terror in the USSR database, created by the Memorial Society (https://base.memo.ru/).
+This code allows to geocode addresses of victims of terror in regions of the USSR using modern maps via Yandex.Maps API [Geocoder](https://yandex.com/dev/maps/geocoder/). We worked with the following regions: Altai Kray, Bashkirian ASSR, Gorky Oblast, Karelian ASSR and North Ossetian ASSR. Map of all this regions with administrative divisions is also [published](https://ivliag.github.io/victims).
+
+The information on victims came from the Victims of political terror in the USSR database, created by the [Memorial Society](https://base.memo.ru/).
  
 At first, the code searches the victims’ addresses to locate in them the names of historical districts. Following that, Yandex Geocoder searches each settlement name inside the polygon of the assigned district. If Yandex does not find the exact place inside the district, it searches for this place inside the region. 
 
