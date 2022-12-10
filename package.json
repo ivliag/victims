@@ -20,7 +20,7 @@
   "homepage": "https://github.com/ivliag/victims#readme",
   "dependencies": {
     "bluebird": "^3.5.2",
-    "express": "^4.17.1",
+    "express": "^4.17.3",
     "lodash.get": "^4.4.2",
     "node-cleanup": "^2.1.2",
     "request": "^2.88.2",
